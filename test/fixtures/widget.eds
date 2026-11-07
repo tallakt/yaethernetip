@@ -1,0 +1,80 @@
+$ A device made up for the tests of EtherNetIP.EDS, with what Volume 1, chapter 7 allows: entries
+$ over lines, strings joined and escaped, signed values in hexadecimal, bits of parameters,
+$ assemblies within assemblies, and parameters in connection paths.
+
+[File]
+    DescText = "Widget " "EDS";          $ two strings, one field
+    CreateDate = 04-03-1994;
+    CreateTime = 17:51:44;
+    ModDate = 10-29-26;                  $ in the 1900s, as two digits are
+    Revision = 1.10;
+    HomeURL = "http://example.com/widget.eds";
+
+[Device]
+    VendCode = 65535;
+    VendName = "Widget-Works, Inc.";
+    ProdType = 0x07;
+    ProdTypeStr = "General Purpose Discrete I/O";
+    ProdCode = 42;
+    MajRev = 3;
+    MinRev = 1;
+    ProdName = "Widget \"8DI/8DO\"";
+    Catalog = "WW-88";
+
+[Device Classification]
+    Class1 = EtherNetIP;
+    Class2 = 65535_Widgets, Discrete;
+
+[Params]
+    Param1 = 0, , , 0x0000, 0xC8, 4, "RPI", "µs", "", 2000, 1000000, 10000, , , , , , , , , ;
+    Param2 =
+        0,                               $ reserved
+        6, "20 04 24 64 30 03",          $ path size, path
+        0x0010,                          $ descriptor
+        0xC1, 1,                         $ BOOL, 1 byte
+        "Input 0", "", "",
+        0, 1, 0;
+    Param3 = 0,,, 0, 0xC2, 1, "Offset", "", "", 0x80, 0x7F, 0xFF;      $ -128, 127, -1
+    Param4 = 0,,, 0, 0xCA, 4, "Gain", "", "", -10.5, 1e3, 2.5;
+    Param5 = 0,,, 0x0002, 0xC6, 1, "Filter", "ms", "", 0, 3, 1;
+    Enum5 = 0, "off", 1, "1 ms", 2, "3 ms", 3, "10 ms";
+    Param6 = 0,,, 0, 0xC7, 2, "Output point", "", "", 150, 151, 150;
+    Param7 = 0,,, 0, 0xD1, 1, "Outputs", "", "", 0, 255, 0;
+    Param8 = 0,,, 0, 0xD1, 1, "Inputs", "", "", 0, 255, 0;
+
+[Assembly]
+    Revision = 2;
+    Assem100 = "Inputs", "", 2,,,,
+        1, Param2,                       $ input 0
+        7, ,                             $ a pad
+        8, Param8;
+    Assem150 = "Outputs", "", 1,,,, 8, Param7;
+    Assem151 = "Outputs too", "", 1,,,, 8, Param7;
+    Assem1 = "Configuration", "", ,,,,
+        8, Param3,
+        32, Param4,
+        2, Param5:0,                     $ the filter's two low bits
+        6, ,
+        16, Assem2;
+    Assem2 = "More configuration", "", 2,,,, 16, 0x1234;
+
+[Connection Manager]
+    Connection1 =
+        0x04010002, 0x44640405,
+        Param1, , Assem150,              $ O->T RPI, size, format
+        Param1, , Assem100,              $ T->O RPI, size, format
+        , Assem1,                        $ config #1 size, format
+        , ,                              $ config #2 size, format
+        "Exclusive Owner", "",
+        "20 04 24 01 2D 00 [Param6] 2C 64";
+    Connection2 =
+        0x02030002, 0x44240305,
+        Param1, 0, ,
+        Param1, , Assem100,
+        , , , ,
+        "Input Only", "",
+        "20 04 24 01 2C 98 2C 64";
+    Connection3 = 0x04010008, 0x44640405, , , , , , , , , , , "Explicit", "", "20 04 24 01";
+
+[65535_Widget Extras]
+    Colour = {1, {2, 3}}, L"Grønn";

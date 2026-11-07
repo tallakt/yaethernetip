@@ -1,0 +1,35 @@
+$ What the OpENer tests take OpENer's sample application to be, as its own EDS describes it:
+$ input assembly 100, output assembly 150 and configuration assembly 151, of 32, 32 and 10 bytes;
+$ 152 and 153, the connection points of input-only and listen-only connections; RPIs from 20 ms.
+
+[File]
+    DescText = "OpENer's sample application, for the tests";
+    Revision = 1.0;
+
+[Device]
+    VendCode = 1;
+    ProdType = 12;
+    ProdCode = 65001;
+    MajRev = 2;
+    MinRev = 3;
+    ProdName = "OpENer PC";
+
+[Params]
+    Param1 = 0,,, 0, 0xC8, 4, "RPI", "µs", "", 20000, , 20000;
+    Param2 = 0,,, 0, 0xD1, 1, "Data", "", "", , , 0;
+
+[Assembly]
+    Assem100 = "Inputs", "", 32,,,;
+    Assem150 = "Outputs", "", 32,,,;
+    Assem151 = "Configuration", "", 10,,,, 80, Param2;
+
+[Connection Manager]
+    Connection1 = 0x84010002, 0x44640405,
+        Param1, , Assem150, Param1, , Assem100, , , , Assem151,
+        "Exclusive Owner", "", "20 04 24 97 2C 96 2C 64";
+    Connection2 = 0x02010002, 0x44640305,
+        Param1, 0, , Param1, 32, Assem100, , , 0, ,
+        "Input Only", "", "20 04 24 97 2C 98 2C 64";
+    Connection3 = 0x01010002, 0x44240305,
+        Param1, 0, , Param1, , Assem100, , , , ,
+        "Listen Only", "", "20 04 24 97 2C 99 2C 64";

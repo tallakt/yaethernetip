@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - elixir: "1.15"
+            otp: "26"
+          - elixir: "1.16"
+            otp: "26"
+          - elixir: "1.17"
+            otp: "27"
+          - elixir: "1.18"
+            otp: "27"
+          - elixir: "1.19"
+            otp: "27"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Wireshark's dissectors read the messages the same whatever the Elixir, so once is enough:
+      # installing it takes minutes.
+      - name: Install tshark, for the tests against Wireshark's dissectors
+        if: matrix.elixir == '1.19'
+        run: |
+          sudo apt-get update
+          echo "wireshark-common wireshark-common/install-setuid boolean false" | sudo debconf-set-selections
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tshark
+
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{ matrix.otp }}
+
+      - name: Restore deps cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-
+
+      - name: Restore dialyzer PLT cache
+        if: matrix.elixir == '1.19'
+        uses: actions/cache@v4
+        with:
+          path: priv/plts
+          key: ${{ runner.os }}-plt-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-plt-${{ matrix.elixir }}-${{ matrix.otp }}-
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Check formatting
+        run: mix format --check-formatted
+
+      - name: Compile (warnings as errors)
+        run: mix compile --warnings-as-errors
+
+      - name: Credo
+        if: matrix.elixir == '1.19'
+        run: mix credo
+
+      - name: Dialyzer
+        if: matrix.elixir == '1.19'
+        run: mkdir -p priv/plts && mix dialyzer --format github
+
+      # Coverage is counted differently from one Elixir version to the next, so its threshold is
+      # held on the newest.
+      - name: Run tests
+        if: matrix.elixir != '1.19'
+        run: mix test
+
+      - name: Run tests, with coverage
+        if: matrix.elixir == '1.19'
+        run: mix test --cover
