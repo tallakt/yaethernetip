@@ -1340,7 +1340,7 @@ defmodule EtherNetIP.Adapter.Server do
 
     with %{class: 1} <- c,
          {:ok, {_id, sequence, data}} <- IOPacket.decode(packet),
-         true <- c.last_sequence == nil or IOPacket.next?(c.last_sequence, sequence, c.multiplier),
+         true <- in_order?(c, sequence),
          {:ok, count, run, outputs} <- packet_data(s, c, data) do
       c = %{watchdog(c, timeout(c)) | last_sequence: sequence}
       new = count != c.last_count
@@ -1372,6 +1372,9 @@ defmodule EtherNetIP.Adapter.Server do
 
   defp packet_data(_s, _c, <<count::little-16, _rest::binary>>), do: {:ok, count, nil, <<>>}
   defp packet_data(_s, _c, _data), do: :error
+
+  defp in_order?(%{last_sequence: nil}, _sequence), do: true
+  defp in_order?(c, sequence), do: IOPacket.next?(c.last_sequence, sequence, c.multiplier)
 
   # Outputs in run mode are the application's; idle ones aren't taken (Volume 1, 3-6.1.4).
   defp outputs(s, c, new, run, data) do
